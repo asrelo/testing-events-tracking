@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools >=68,<81"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asrelo-testing-events-tracking"
+license = "MIT"
+classifiers = [
+    "Development Status :: 3 - Alphs",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+requires-python = ">=3.11"
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = ["pylint >=3.3.8,<4"]
+
+#[tool.setuptools.packages]
+
+[tool.setuptools.package-data]
+testing_events_tracking = ["VERSION"]
+
+[tool.setuptools.dynamic]
+version = { file = ["testing_events_tracking/VERSION"] }
