@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Generic, NamedTuple, Optional, TypeAlias, TypeVar
+from typing import Generic, NamedTuple, Optional, Self, TypeAlias, TypeVar
 from weakref import ReferenceType, ref
 
 from testing_events_tracking._events import OptionalMaybeWeak
@@ -25,8 +25,21 @@ def make_maybe_weak(
 
 
 class RecordMaybeWeakObjectOptions(NamedTuple, Generic[T]):
-    weak: bool
+
+    is_weak: bool
     weak_callback: Optional[WeakRefCallback[T]] = None
+
+    @classmethod
+    def strong(cls) -> Self:
+        return cls(is_weak=False)
+
+    @classmethod
+    def weak(cls, callback: Optional[WeakRefCallback[T]] = None) -> Self:
+        return cls(is_weak=True, weak_callback=callback)
+
+    @classmethod
+    def untracked(cls) -> None:
+        return None
 
 
 class RecordingObjectConverter(Generic[T]):
@@ -39,6 +52,6 @@ class RecordingObjectConverter(Generic[T]):
             return None
         return make_maybe_weak(
             obj,
-            weak=self._options.weak,
+            weak=self._options.is_weak,
             weak_callback=self._options.weak_callback,
         )

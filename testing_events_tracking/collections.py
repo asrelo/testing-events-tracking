@@ -5,7 +5,6 @@ from ._common.weakref import (
     RecordMaybeWeakObjectOptions,
     RecordingObjectConverter,
 )
-from ._common.weakref import WeakRefCallback
 from ._events import (
     OptionalMaybeWeak,
     IterableNewIteratorRetrievedEvent,
@@ -21,19 +20,15 @@ T = TypeVar('T')
 class RecordMaybeWeakIterableOptions(RecordMaybeWeakObjectOptions[Iterable[T]]):
 
     @classmethod
-    def create(
-        cls, *, weak: bool = True, weak_callback: Optional[WeakRefCallback[Iterable[T]]] = None,
-    ) -> Self:
-        return cls(weak=weak, weak_callback=weak_callback)
+    def create_default(cls) -> Self:
+        return cls.weak()
 
 
 class RecordMaybeWeakIteratorOptions(RecordMaybeWeakObjectOptions[Iterator[T]]):
 
     @classmethod
-    def create(
-        cls, *, weak: bool = False, weak_callback: Optional[WeakRefCallback[Iterator[T]]] = None,
-    ) -> Self:
-        return cls(weak=weak, weak_callback=weak_callback)
+    def create_default(cls) -> Self:
+        return cls.strong()
 
 
 class TrackedIterable(Iterable[T]):
