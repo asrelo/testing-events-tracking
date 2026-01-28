@@ -1,7 +1,10 @@
 from collections.abc import Iterable, Iterator
-from typing import Optional, Self, TypeVar, Generic, NamedTuple, cast
+from typing import Optional, Self, TypeVar, cast
 
-from ._common import make_maybe_weak
+from ._common.weakref import (
+    RecordMaybeWeakObjectOptions,
+    RecordingObjectConverter,
+)
 from ._common.weakref import WeakRefCallback
 from ._events import (
     OptionalMaybeWeak,
@@ -11,27 +14,30 @@ from ._events import (
 )
 from ._recorder import EventsRecorder
 
+
 T = TypeVar('T')
 
-class RecordMaybeWeakObjectOptions(NamedTuple, Generic[T]):
-    weak: bool
-    weak_callback: Optional[WeakRefCallback[T]] = None
 
 class RecordMaybeWeakIterableOptions(RecordMaybeWeakObjectOptions[Iterable[T]]):
+
     @classmethod
     def create(
         cls, *, weak: bool = True, weak_callback: Optional[WeakRefCallback[Iterable[T]]] = None,
     ) -> Self:
         return cls(weak=weak, weak_callback=weak_callback)
 
+
 class RecordMaybeWeakIteratorOptions(RecordMaybeWeakObjectOptions[Iterator[T]]):
+
     @classmethod
     def create(
         cls, *, weak: bool = False, weak_callback: Optional[WeakRefCallback[Iterator[T]]] = None,
     ) -> Self:
         return cls(weak=weak, weak_callback=weak_callback)
 
+
 class TrackedIterable(Iterable[T]):
+
     def __init__(
         self,
         iterable: Iterable[T],
@@ -43,47 +49,30 @@ class TrackedIterable(Iterable[T]):
     ):
         self._iterable: Iterable[T] = iterable
         self._recorder: EventsRecorder = recorder
-        self._record_iterable_options: Optional[RecordMaybeWeakIterableOptions[T]] = (
-            record_iterable_options
-        )
         self._record_requested_iterators_options: Optional[RecordMaybeWeakIteratorOptions[T]] = (
             record_requested_iterators_options
         )
+        self._iterable_recording_converter = RecordingObjectConverter(record_iterable_options)
+        self._requested_iterators_recording_converter = (
+            RecordingObjectConverter(record_requested_iterators_options)
+        )
+
     @property
     def iterable(self) -> Iterable[T]:
         return self._iterable
-    def _get_iterable_to_record(self) -> OptionalMaybeWeak[Iterable[T]]:
-        return (
-            make_maybe_weak(
-                self._iterable,
-                weak=self._record_iterable_options.weak,
-                weak_callback=self._record_iterable_options.weak_callback,
-            )
-            if self._record_iterable_options is not None
-            else None
-        )
-    def _get_requested_iterator_to_record(
-        self, it: Iterator[T],
-    ) -> OptionalMaybeWeak[Iterator[T]]:
-        return (
-            make_maybe_weak(
-                it,
-                weak=self._record_requested_iterators_options.weak,
-                weak_callback=self._record_requested_iterators_options.weak_callback,
-            )
-            if self._record_requested_iterators_options is not None
-            else None
-        )
+
     def __iter__(self) -> Iterator[T]:
         it = iter(self._iterable)
         self._recorder.record_event(
             IterableNewIteratorRetrievedEvent(
-                self._get_iterable_to_record(), self._get_requested_iterator_to_record(it),
+                self._iterable_recording_converter(self._iterable),
+                self._requested_iterators_recording_converter(it),
             )
         )
         return TrackedIterator(
             it, self._recorder, record_iterator_options=self._record_requested_iterators_options,
         )
+
 
 class TrackedIterator(Iterator[T]):
     def __init__(
@@ -94,48 +83,31 @@ class TrackedIterator(Iterator[T]):
     ):
         self._iterator: Iterator[T] = iterator
         self._recorder: EventsRecorder = recorder
-        self._record_iterator_options: Optional[RecordMaybeWeakIteratorOptions[T]] = (
-            record_iterator_options
-        )
+        self._iterator_recording_converter = RecordingObjectConverter(record_iterator_options)
+
     @property
     def iterator(self) -> Iterator[T]:
         return self._iterator
-    def _get_iterator_to_record(self) -> OptionalMaybeWeak[Iterator[T]]:
-        return (
-            make_maybe_weak(
-                self._iterator,
-                weak=self._record_iterator_options.weak,
-                weak_callback=self._record_iterator_options.weak_callback,
-            )
-            if self._record_iterator_options is not None
-            else None
-        )
-    def _get_requested_iterator_to_record(
-        self, it: Iterator[T],
-    ) -> OptionalMaybeWeak[Iterator[T]]:
-        return (
-            make_maybe_weak(
-                it,
-                weak=self._record_iterator_options.weak,
-                weak_callback=self._record_iterator_options.weak_callback,
-            )
-            if self._record_iterator_options is not None
-            else None
-        )
+
     def __iter__(self) -> Iterator[T]:
         self._recorder.record_event(IterableNewIteratorRetrievedEvent(
             # XXX: cast??
-            cast(OptionalMaybeWeak[Iterable[T]], self._get_iterator_to_record()),
-            self._get_requested_iterator_to_record(self._iterator),
+            cast(
+                OptionalMaybeWeak[Iterable[T]], self._iterator_recording_converter(self._iterator)
+            ),
+            self._iterator_recording_converter(self._iterator),
         ))
         return self
+
     def __next__(self) -> T:
         try:
             value = next(self._iterator)
         except StopIteration as exc:
             self._recorder.record_event(
-                IteratorExhaustedEvent(self._get_iterator_to_record(), exc)
+                IteratorExhaustedEvent(self._iterator_recording_converter(self._iterator), exc)
             )
             raise
-        self._recorder.record_event(IteratorAdvancedEvent(self._get_iterator_to_record(), value))
+        self._recorder.record_event(
+            IteratorAdvancedEvent(self._iterator_recording_converter(self._iterator), value)
+        )
         return value
