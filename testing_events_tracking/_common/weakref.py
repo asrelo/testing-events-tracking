@@ -2,8 +2,6 @@ from collections.abc import Callable
 from typing import Generic, NamedTuple, Optional, Self, TypeAlias, TypeVar
 from weakref import ReferenceType, ref
 
-from testing_events_tracking._events import OptionalMaybeWeak
-
 
 T = TypeVar('T')
 
@@ -11,6 +9,8 @@ T = TypeVar('T')
 WeakRefCallback: TypeAlias = Callable[[ReferenceType[T]], None]
 
 MaybeWeak: TypeAlias = T | ReferenceType[T]
+
+OptionalMaybeWeak: TypeAlias = Optional[MaybeWeak[T]]
 
 
 def make_maybe_weak(

@@ -6,7 +6,6 @@ from weakref import ReferenceType
 from testing_events_tracking._common.weakref import MaybeWeak
 
 __all__ = (
-    'OptionalMaybeWeak',
     'match_objects',
     'match_optional_objects',
     'match_maybe_weak_objects',
@@ -16,8 +15,6 @@ __all__ = (
 )
 
 T = TypeVar('T')
-
-OptionalMaybeWeak: TypeAlias = Optional[MaybeWeak[T]]
 
 def _from_maybe_weak(obj: MaybeWeak[T]) -> T:
     if isinstance(obj, ReferenceType):

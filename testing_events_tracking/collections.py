@@ -2,11 +2,11 @@ from collections.abc import Iterable, Iterator
 from typing import Optional, Self, TypeVar, cast
 
 from ._common.weakref import (
+    OptionalMaybeWeak,
     RecordMaybeWeakObjectOptions,
     RecordingObjectConverter,
 )
 from ._events import (
-    OptionalMaybeWeak,
     IterableNewIteratorRetrievedEvent,
     IteratorAdvancedEvent,
     IteratorExhaustedEvent,

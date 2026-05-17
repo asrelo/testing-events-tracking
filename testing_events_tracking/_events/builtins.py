@@ -2,8 +2,8 @@ from collections.abc import Iterable, Iterator
 from operator import is_, eq
 from typing import Optional, Generic, TypeVar, cast
 
+from testing_events_tracking._common.weakref import OptionalMaybeWeak
 from ._common import (
-    OptionalMaybeWeak,
     MATCH_OBJECTS_USE_EQ_DEFAULT,
     match_optional_objects,
     match_optional_maybe_weak_objects,
